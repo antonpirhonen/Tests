@@ -1,10 +1,13 @@
 
 
-object Backtrack extends App {
+object BacktrackSymmetric extends App {
   
   def solve(n: Int): Int = {
     
     val map = Array.ofDim[Int](n,n)
+    //Symmetry allows us to search only half of the combinations
+    map(0)(0)=1
+    
     def isValid(x: Int) = x >= 0 && x < n
     
     //A method for validating neighbors
@@ -26,7 +29,7 @@ object Backtrack extends App {
     }
     
     var results = 0
-    var depth = 0
+    var depth = 1 //We have the top left corner visited by default
     
     def visit(loc: (Int, Int)): Unit = {
       depth += 1
@@ -49,11 +52,11 @@ object Backtrack extends App {
       map(row)(col)=0
     }
     
-    visit((0,0))
-    println(s"Possible traversals for $n: $results")
-    results
+    if (n == 1) return 1 else visit((0,1))
+    println(s"Possible traversals for $n: ${results*2}")
+    results*2
   }
   
-  1 to 5 foreach solve
+  for (i <- 1 to 6) solve(i)
   
 }
