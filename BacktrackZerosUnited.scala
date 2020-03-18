@@ -3,10 +3,20 @@ import scala.collection.mutable.HashSet
 
 object BacktrackZerosUnited extends App {
   
+  val start = System.nanoTime()
+  
   def solve(n: Int): Int = {
     
     val map = Array.ofDim[Int](n,n)
+    map(0)(0)=1 //Symmetry with square grid
+    
     def isValid(x: Int) = x >= 0 && x < n
+    
+    def printMap() = {
+      println("---")
+      map.foreach(row => println(row.mkString(",")))
+      Thread.sleep(500)
+    }
     
     //A method for validating neighbors
     def canVisit(loc: (Int, Int)): Boolean = {
@@ -26,25 +36,6 @@ object BacktrackZerosUnited extends App {
       }
     }
     
-/*    def canFinish(d: Int): Boolean = {
-      if (d < n*n - 1) {
-        var flag = true
-        for {
-          row <- 0 until n
-          col <- 0 until n
-        } {
-          if (map(row)(col) == 0) {
-            flag = flag && Array(0,1,2,3).map(i => neighInDir((row, col), i)).filter(canVisit).map(x => map(x._1)(x._2)).contains(0)
-          }
-        }
-        //map.foreach(arr => println(arr.mkString(",")))
-        println(s"Can finish: $flag")
-        Thread.sleep(1000)
-        flag
-      }
-      else true
-    }*/
-    
     def adjacentZero(loc: (Int, Int)): (Int, Int) = {
       val (row, col) = loc
       for (dir <- 0 to 3) {
@@ -54,65 +45,37 @@ object BacktrackZerosUnited extends App {
       throw new Error("No neighbors that are zero, should not happen...")
     }
     
-    /*def zeroNeighbors(loc: (Int, Int)): List[(Int, Int)] = {
-      var res: List[(Int, Int)] = List()
-      for (dir <- 0 to 3) {
-        val neigh = neighInDir(loc, dir)
-        if (canVisit(neigh)) res = neigh +: res
-      }
-      res
-    }*/
-    /*
-    def zerosUnited(startLoc: (Int, Int)): Boolean = {
-      var zeroLocations: ArrayBuffer[(Int, Int)] = ArrayBuffer()
-      def visit(loc: (Int, Int)): Unit = {
-        zeroLocations+=loc
-        val (row, col) = loc
-        map(row)(col) = -1
-        for (neigh <- zeroNeighbors(loc)) {
-          if (map(neigh._1)(neigh._2) == 0)visit(neigh) //Spaghetti
+    def markAdjacentZeros(loc: (Int, Int)): HashSet[(Int, Int)] = {
+    	val found = HashSet[(Int, Int)]()
+    	
+    	def inner(loc: (Int, Int)): Unit = {
+    		val (row, col)=loc
+    		map(row)(col)=2
+    		found+=loc
+    		for (dir <- 0 to 3) {
+        	val neigh = neighInDir(loc, dir)
+        	if (canVisit(neigh)) {
+  			    inner(neigh)
+  		    }
         }
-      }
-      visit(startLoc)
-      println(s"zeroLocations.size = ${zeroLocations.size} and map.flatten.count(_==0) = ${map.flatten.count(_==0)}")
-      val united = zeroLocations.size
-      zeroLocations.foreach( loc => map(loc._1)(loc._2) = 0 )
-      united == map.flatten.count(_==0)
-    }*/
-    
-    
-  def markAdjacentZeros(loc: (Int, Int)): HashSet[(Int, Int)] = {
-  	val found = HashSet[(Int, Int)]()
-  	
-  	def inner(loc: (Int, Int)): Unit = {
-  		val (row, col)=loc
-  		map(row)(col)=2
-  		found+=loc
-  		for (dir <- 0 to 3) {
-          	val neigh = neighInDir(loc, dir)
-          	if (canVisit(neigh)) {
-  				inner(neigh)
-  			}
-      	}
-  	}
-  	
-  	inner(loc)
-  	found
-  }
-    
-  def canHaveSolutions(zeroLoc: (Int, Int)): Boolean = {
-	    val marked = markAdjacentZeros(zeroLoc)
-    	if (map.flatten.contains(0)) return false
-    	for (loc <- marked) {
-    		map(loc._1)(loc._2)=0
-	  }
-	  true
-  }
-    
-    
+    	}
+    	inner(loc)
+      //printMap()
+    	found
+    }
       
+    def canHaveSolutions(zeroLoc: (Int, Int)): Boolean = {
+	    val marked = markAdjacentZeros(zeroLoc)
+	    val res = !map.flatten.contains(0)
+    	for (loc <- marked) {
+      		map(loc._1)(loc._2)=0
+  	  }
+  	  res
+    }
+    
+    
     var results = 0
-    var depth = 0
+    var depth = 1
     
     def visit(loc: (Int, Int)): Unit = {
       depth += 1
@@ -121,27 +84,24 @@ object BacktrackZerosUnited extends App {
       
       //All tiles walked
       if (depth == n*n) {
+        //println("result found")
+        //printMap()
+        //Thread.sleep(1000)
+        map(row)(col)=0
         depth -=1
         results += 1
         return
       }
       
-      if (depth < n*n - 1 && !canHaveSolutions(adjacentZero(loc))) {
+      if (depth < n*n - 3 && !canHaveSolutions(adjacentZero(loc))) {
+        map(row)(col)=0
         depth -= 1
         return
       }
       
-//      //Zeros not united, no possible solutions
-//      if (depth < n*n-2 && !zerosUnited(zeroNeighbors(loc).head)) {
-//        depth -= 1
-//        map(row)(col)=0
-//        println("Zeros not united")
-//        return
-//      }
-      
-      println("---")
-      map.foreach(arr => println(arr.mkString(",")))
-      Thread.sleep(500L)
+//      println("---")
+//      map.foreach(arr => println(arr.mkString(",")))
+//      Thread.sleep(500L)
       
       for (dir <- 0 until 4) {
         val neigh = neighInDir(loc, dir)
@@ -150,15 +110,17 @@ object BacktrackZerosUnited extends App {
         }
       }
       
-      depth -= 1
       map(row)(col)=0
+      depth -= 1
     }
     
-    visit((0,0))
-    println(s"Possible traversals for $n: $results")
-    results
+    if (n == 1) return 1 else visit((0,1))
+    println(s"Possible traversals for $n: ${results*2}")
+    results*2
   }
   
-  //1 to 5 foreach solve
-  solve(3)
+  solve(7)
+  println(s"Time taken: ${(System.nanoTime() - start)*10E-10} seconds")
+  
+  //2 to 4 foreach solve
 }
